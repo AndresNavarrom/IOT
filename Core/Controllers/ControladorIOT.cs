@@ -38,14 +38,14 @@ public class ControladorIOT
         return device is null ? "Device not found" : device.getStatus().GetType().Name;
     }
 
-    public void executeCommand(Command command)
+    public void executeCommand(ICommand command)
     {
         command.execute();
     }
 
     public IDevice? getDeviceById(int id)
     {
-        return devices.FirstOrDefault(current => current is Device concrete && concrete.getId() == id);
+        return devices.FirstOrDefault(current => current is Device concrete && concrete.getID() == id);
     }
 
     public List<IDevice> getAllDevices()

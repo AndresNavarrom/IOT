@@ -1,9 +1,11 @@
+using System;
+using System.Collections.Generic;
 using UMLIoT.Core.Controllers;
 using UMLIoT.Core.Devices;
 using UMLIoT.Core.Users;
 using UMLIoT.Patterns.Command;
 using UMLIoT.Patterns.Factory.Devices;
-using DeviceCreator = UMLIoT.Patterns.Factory.Devices.DiviceCreator;
+using UMLIoT.Patterns.Observer;
 
 namespace UMLIoT.Patterns.Facade;
 
@@ -13,23 +15,33 @@ public class IoTFacade
     private readonly UserRepository userRepository;
     private readonly ControladorIOT controladorIOT;
 
-    public IoTFacade(AuthService authService, UserRepository userRepository, ControladorIOT controladorIOT)
+    private int nextUserId = 1;
+
+    public IoTFacade()
     {
-        this.authService = authService;
-        this.userRepository = userRepository;
-        this.controladorIOT = controladorIOT;
+        userRepository = new UserRepository();
+        authService = new AuthService(userRepository);
+        controladorIOT = new ControladorIOT();
     }
 
     // =========================
     // AUTENTICACIÓN
     // =========================
 
-    public bool Login(string email, string password)
+    public User registerUser(string name, string email, string password)
     {
-        return authService.login(email, password, password);
+        var user = new User(nextUserId++, name, email, password);
+        userRepository.registerUser(user);
+        controladorIOT.addUser(user);
+        return user;
     }
 
-    public void Logout()
+    public bool login(string email, string password)
+    {
+        return authService.login(email, password);
+    }
+
+    public void logout(int userId)
     {
         var user = userRepository.findById(userId);
         if (user is not null)
@@ -38,39 +50,53 @@ public class IoTFacade
         }
     }
 
+    public void setEventManager(DeviceEventManager eventManager)
+    {
+        controladorIOT.setEventManager(eventManager);
+    }
+
     // =========================
     // DISPOSITIVOS
     // =========================
 
-    public IDevice? RegisterDevice(string type, string config)
+    public IDevice? registerDevice(string type, Dictionary<string, string> config)
     {
-        if (!creators.TryGetValue(type.ToLowerInvariant(), out var creator))
+        DeviceCreator? creator = type.ToLowerInvariant() switch
         {
-            Console.WriteLine("Tipo de dispositivo no soportado");
+            "camera" => new CameraCreator(int.Parse(config.GetValueOrDefault("id", "0")), config.GetValueOrDefault("name", ""), config.GetValueOrDefault("ipAddress", "")),
+            "smartlight" => new SmartlightCreator(int.Parse(config.GetValueOrDefault("id", "0")), config.GetValueOrDefault("name", ""), config.GetValueOrDefault("ipAddress", ""), config.GetValueOrDefault("color", "White"), config.GetValueOrDefault("schedule", "")),
+            "alarm" => new AlarmCreator(int.Parse(config.GetValueOrDefault("id", "0")), config.GetValueOrDefault("name", ""), config.GetValueOrDefault("ipAddress", "")),
+            _ => null
+        };
+
+        if (creator is null)
+        {
             return null;
         }
-
-        var id = int.Parse(values["id"]);
-        var name = values["name"];
-        var ipAddress = values["ipAddress"];
-
-        DeviceCreator creator = type.ToLower() switch
-        {
-            "camera" => new CameraCreator(id, name, ipAddress),
-            "smartlight" => new SmartlightCreator(id, name, ipAddress, values.GetValueOrDefault("color", "White"), values.GetValueOrDefault("schedule", "Default")),
-            "alarm" => new AlarmCreator(id, name, ipAddress),
-            _ => throw new InvalidOperationException("Invalid device type")
-        };
 
         return controladorIOT.addDevice(creator);
     }
 
-    public bool RemoveDevice(int deviceId)
+    public bool removeDevice(int deviceId)
     {
         return controladorIOT.removeDevice(deviceId);
     }
 
-    public List<IDevice> GetAllDevices()
+    public List<IDevice> getAllDevice()
+    {
+        return controladorIOT.getAllDevices();
+    }
+
+    public string getDeviceStatus(int deviceId)
+    {
+        return controladorIOT.getDeviceStatus(deviceId);
+    }
+
+    // =========================
+    // ACCIONES (COMMAND)
+    // =========================
+
+    public void turnOnDevice(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is ISwitchable switchable)
@@ -79,7 +105,7 @@ public class IoTFacade
         }
     }
 
-    public string GetDeviceStatus(int deviceId)
+    public void turnOffDevice(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is ISwitchable switchable)
@@ -88,11 +114,7 @@ public class IoTFacade
         }
     }
 
-    // =========================
-    // ACCIONES (COMMAND)
-    // =========================
-
-    public void TurnOnDevice(int deviceId)
+    public void activateAlarm(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is IAlarm alarm)
@@ -101,26 +123,12 @@ public class IoTFacade
         }
     }
 
-    public void TurnOffDevice(int deviceId)
+    public void startRecording(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is IMonitorable monitorable)
         {
             controladorIOT.executeCommand(new StartRecordingCommand(monitorable));
         }
-    }
-
-    public void ActivateAlarm(int deviceId)
-    {
-        ExecuteIf<IAlarm>(
-            deviceId,
-            device => new TriggerAlarmCommand(device),
-            "El dispositivo no es una alarma"
-        );
-    }
-
-    public void StartRecording(int deviceId)
-    {
-        return controladorIOT.getAllDevices();
     }
 }

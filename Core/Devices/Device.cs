@@ -36,7 +36,7 @@ public abstract class Device : IDevice
 
     public virtual void handleStatus()
     {
-        status.handleStatus();
+        status.handleStatus(this);
     }
 
     public virtual int getID()

@@ -3,20 +3,30 @@ namespace UMLIoT.Core.Users;
 public class AuthService
 {
     private readonly UserRepository userRepository;
+    private User? currentUser;
 
     public AuthService(UserRepository userRepository)
     {
         this.userRepository = userRepository;
     }
 
-    public bool login(string email, string password, string? ignored = null)
+    public bool login(string email, string password)
     {
         var user = userRepository.findByEmail(email);
-        return user is not null && user.GetPassword() == password;
+        if (user is null)
+        {
+            currentUser = null;
+            return false;
+        }
+
+        var success = user.GetPassword() == password;
+        currentUser = success ? user : null;
+        return success;
     }
 
     public void logout()
     {
+        currentUser = null;
         Console.WriteLine("Sesión cerrada");
     }
 
