@@ -65,7 +65,7 @@ public class IoTFacade
 
     public List<IDevice> GetAllDevices()
     {
-        return controladorIOT.getAllDevices();
+        return controladorIOT.getAllDeviceInternal();
     }
 
     public string GetDeviceStatus(int deviceId)

@@ -2,7 +2,7 @@ using UMLIoT.Core.Devices;
 
 namespace UMLIoT.Patterns.Command;
 
-public class TriggerAlarmCommand implements ICommand
+public class TriggerAlarmCommand : ICommand
 {
 
     private IAlarm alarm;
@@ -12,10 +12,9 @@ public TriggerAlarmCommand(IAlarm alarm)
     this.alarm = alarm;
 }
 
-@Override
     public void execute()
 {
-    System.out.println("[Command] TriggerAlarm");
+    Console.WriteLine("[Command] TriggerAlarm");
     alarm.trigger();
 }
 }

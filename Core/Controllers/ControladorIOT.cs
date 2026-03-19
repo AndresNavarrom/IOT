@@ -41,7 +41,7 @@ public class ControladorIOT
         return device?.getStatus().GetType().Name ?? string.Empty;
     }
 
-    public void executeCommand(ICommand command)
+    public void executeCommand(Command command)
     {
         command.execute();
     }
