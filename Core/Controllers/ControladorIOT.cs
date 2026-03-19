@@ -1,31 +1,28 @@
-using Command = UMLIoT.Patterns.Command.ICommand;
-using DeviceCreator = UMLIoT.Patterns.Factory.Devices.DiviceCreator;
 using UMLIoT.Core.Devices;
 using UMLIoT.Core.Users;
+using UMLIoT.Patterns.Command;
+using UMLIoT.Patterns.Factory.Devices;
+using UMLIoT.Patterns.Observer;
 
 namespace UMLIoT.Core.Controllers;
 
 public class ControladorIOT
 {
-    private readonly List<IDevice> devices;
-    private readonly List<User> users;
+    private readonly List<IDevice> devices = new();
+    private readonly List<User> users = new();
+    private DeviceEventManager? eventManager;
 
-    public ControladorIOT()
+    public IDevice addDevice(DeviceCreator creator)
     {
-        devices = new List<IDevice>();
-        users = new List<User>();
-    }
-
-    public IDevice addDevice(DeviceCreator DeviceCreator)
-    {
-        IDevice device = DeviceCreator.DeviceCreatorMethod();
+        var device = creator.DeviceCreatorMethod();
         devices.Add(device);
+        eventManager?.notifyObservers(device);
         return device;
     }
 
     public bool removeDevice(int id)
     {
-        IDevice? device = devices.FirstOrDefault(current => current is Device concrete && concrete.getId() == id);
+        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getId() == id);
         if (device is null)
         {
             return false;
@@ -37,17 +34,39 @@ public class ControladorIOT
 
     public string getDeviceStatus(int id)
     {
-        IDevice? device = devices.FirstOrDefault(current => current is Device concrete && concrete.getId() == id);
-        return device?.getStatus().GetType().Name ?? string.Empty;
+        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getId() == id);
+        return device is null ? "Device not found" : device.getStatus().GetType().Name;
     }
 
-    public void executeCommand(Command cmd)
+    public void executeCommand(ICommand cmd)
     {
         cmd.execute();
+        if (cmd is not null)
+        {
+            foreach (var device in devices)
+            {
+                eventManager?.notifyObservers(device);
+            }
+        }
     }
 
-    public List<IDevice> getAllDeviceInternal()
+    public List<IDevice> getAllDevices()
     {
         return devices;
+    }
+
+    public Device? findDeviceById(int id)
+    {
+        return devices.OfType<Device>().FirstOrDefault(x => x.getId() == id);
+    }
+
+    public void addUser(User user)
+    {
+        users.Add(user);
+    }
+
+    public void setEventManager(DeviceEventManager eventManager)
+    {
+        this.eventManager = eventManager;
     }
 }

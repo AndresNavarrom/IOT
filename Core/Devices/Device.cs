@@ -9,46 +9,49 @@ public class Device : IDevice
     private DeviceStatus status;
     private string ipAddress;
 
-    public Device()
+    protected Device(int id, string name, string ipAddress)
     {
-        id = 0;
-        name = string.Empty;
-        status = new OfflineStatus();
-        ipAddress = string.Empty;
-    }
-
-    public Device(int id, string name, DeviceStatus status, string ipAddress)
-    {
-        this.id = id;
-        this.name = name;
-        this.status = status;
-        this.ipAddress = ipAddress;
+    this.id = id;
+    this.name = name;
+    this.ipAddress = ipAddress;
+    status = new OfflineStatus();
     }
 
     public virtual bool connect()
     {
-        status = new OnlineStatus();
-        return true;
+    status = new OnlineStatus();
+    return true;
     }
 
     public virtual bool disconnect()
     {
-        status = new OfflineStatus();
-        return true;
+    status = new OfflineStatus();
+    return true;
     }
 
     public virtual DeviceStatus getStatus()
     {
-        return status;
+    return status;
     }
 
     public virtual void handleStatus()
     {
-        status.handleStatus(this);
+    status.handleStatus();
     }
 
     public virtual int getId()
     {
-        return id;
+    return id;
     }
+
+    public virtual int getID()
+    {
+    return getId();
+    }
+
+    public virtual string getName()
+    {
+    return name;
+    }
+
 }

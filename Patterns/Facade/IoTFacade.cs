@@ -12,37 +12,45 @@ public class IoTFacade
     private readonly UserRepository userRepository;
     private readonly ControladorIOT controladorIOT;
 
-    public IoTFacade()
+    public IoTFacade(AuthService authService, UserRepository userRepository, ControladorIOT controladorIOT)
     {
-        authService = new AuthService();
-        userRepository = new UserRepository();
-        controladorIOT = new ControladorIOT();
+        this.authService = authService;
+        this.userRepository = userRepository;
+        this.controladorIOT = controladorIOT;
     }
 
     public bool login(string email, string password)
     {
-        return authService.login(email, password);
+        return authService.login(email, password, password);
     }
 
     public void logout(int userId)
     {
-        authService.logout();
+        var user = userRepository.findById(userId);
+        if (user is not null)
+        {
+            authService.logout();
+        }
     }
 
-    public IDevice? registerDevice(string type, string config)
+    public IDevice? registerDevice(string type, object config)
     {
-        DiviceCreator? creator = type.ToLowerInvariant() switch
-        {
-            "camera" => new CameraCreator(),
-            "smartlight" => new SmartlightCreator(),
-            "alarm" => new AlarmCreator(),
-            _ => null
-        };
-
-        if (creator is null)
+        if (config is not Dictionary<string, string> values)
         {
             return null;
         }
+
+        var id = int.Parse(values["id"]);
+        var name = values["name"];
+        var ipAddress = values["ipAddress"];
+
+        DeviceCreator creator = type.ToLower() switch
+        {
+            "camera" => new CameraCreator(id, name, ipAddress),
+            "smartlight" => new SmartlightCreator(id, name, ipAddress, values.GetValueOrDefault("color", "White"), values.GetValueOrDefault("schedule", "Default")),
+            "alarm" => new AlarmCreator(id, name, ipAddress),
+            _ => throw new InvalidOperationException("Invalid device type")
+        };
 
         return controladorIOT.addDevice(creator);
     }
@@ -54,7 +62,7 @@ public class IoTFacade
 
     public void turnOnDevice(int deviceId)
     {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
+        var device = controladorIOT.findDeviceById(deviceId);
         if (device is ISwitchable switchable)
         {
             controladorIOT.executeCommand(new TurnOnCommand(switchable));
@@ -63,7 +71,7 @@ public class IoTFacade
 
     public void turnOffDevice(int deviceId)
     {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
+        var device = controladorIOT.findDeviceById(deviceId);
         if (device is ISwitchable switchable)
         {
             controladorIOT.executeCommand(new TurnOffCommand(switchable));
@@ -72,7 +80,7 @@ public class IoTFacade
 
     public void activateAlarm(int deviceId)
     {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
+        var device = controladorIOT.findDeviceById(deviceId);
         if (device is IAlarm alarm)
         {
             controladorIOT.executeCommand(new TriggerAlarmCommand(alarm));
@@ -81,7 +89,7 @@ public class IoTFacade
 
     public void startRecording(int deviceId)
     {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
+        var device = controladorIOT.findDeviceById(deviceId);
         if (device is IMonitorable monitorable)
         {
             controladorIOT.executeCommand(new StartRecordingCommand(monitorable));
@@ -95,6 +103,6 @@ public class IoTFacade
 
     public List<IDevice> getAllDevice()
     {
-        return controladorIOT.getAllDeviceInternal();
+        return controladorIOT.getAllDevices();
     }
 }
