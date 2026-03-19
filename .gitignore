@@ -2,6 +2,16 @@
 # 🟦 VS Code
 # =========================
 .vscode/
+obj/
+bin/
+*.exe
+*.dll
+*.pdb
+*.obj
+*.o
+*.lib
+*.so
+*.dylib
 
 # Si quieres compartir configuración, usa esto en vez de ignorar todo:
 # .vscode/*
