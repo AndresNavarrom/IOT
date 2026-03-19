@@ -21,11 +21,11 @@ public class DeviceEventManager : IDeviceSubject
         observers.Remove(observer);
     }
 
-    public void notifyObservers(IDevice device)
+    public void notifyObservers(IDevice device, string eventType)
     {
         foreach (IDeviceObserver observer in observers)
         {
-            observer.update(device);
+            observer.update(device, eventType);
         }
     }
 }

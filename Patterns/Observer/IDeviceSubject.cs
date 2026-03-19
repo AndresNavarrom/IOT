@@ -6,5 +6,5 @@ public interface IDeviceSubject
 {
     void addObserver(IDeviceObserver observer);
     void removeObserver(IDeviceObserver observer);
-    void notifyObservers(IDevice device);
+    void notifyObservers(IDevice device, string eventType);
 }
