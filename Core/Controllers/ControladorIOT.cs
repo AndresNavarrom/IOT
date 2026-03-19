@@ -1,7 +1,7 @@
-using Command = UMLIoT.Patterns.Command.ICommand;
-using DeviceCreator = UMLIoT.Patterns.Factory.Devices.DiviceCreator;
 using UMLIoT.Core.Devices;
 using UMLIoT.Core.Users;
+using UMLIoT.Patterns.Command;
+using UMLIoT.Patterns.Factory.Devices;
 using UMLIoT.Patterns.Observer;
 
 namespace UMLIoT.Core.Controllers;
@@ -22,7 +22,7 @@ public class ControladorIOT
 
     public bool removeDevice(int id)
     {
-        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getID() == id);
+        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getId() == id);
         if (device is null)
         {
             return false;
@@ -34,7 +34,7 @@ public class ControladorIOT
 
     public string getDeviceStatus(int id)
     {
-        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getID() == id);
+        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getId() == id);
         return device is null ? "Device not found" : device.getStatus().GetType().Name;
     }
 
@@ -57,7 +57,7 @@ public class ControladorIOT
 
     public Device? findDeviceById(int id)
     {
-        return devices.OfType<Device>().FirstOrDefault(x => x.getID() == id);
+        return devices.OfType<Device>().FirstOrDefault(x => x.getId() == id);
     }
 
     public void addUser(User user)

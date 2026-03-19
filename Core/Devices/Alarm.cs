@@ -9,13 +9,13 @@ public class Alarm : Device, ISwitchable, IAlarm
     public void trigger()
         {
             connect();
-            Console.WriteLine($"Alarm {name} triggered");
+            Console.WriteLine($"Alarm {getName()} triggered");
         }
 
     public void stop()
         {
             disconnect();
-            Console.WriteLine($"Alarm {name} stopped");
+            Console.WriteLine($"Alarm {getName()} stopped");
         }
 
     public void turnOn()

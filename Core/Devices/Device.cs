@@ -39,9 +39,19 @@ public class Device : IDevice
     status.handleStatus();
     }
 
-    public virtual int getID()
+    public virtual int getId()
     {
     return id;
+    }
+
+    public virtual int getID()
+    {
+    return getId();
+    }
+
+    public virtual string getName()
+    {
+    return name;
     }
 
 }
