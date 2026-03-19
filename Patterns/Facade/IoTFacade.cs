@@ -3,6 +3,7 @@ using UMLIoT.Core.Devices;
 using UMLIoT.Core.Users;
 using UMLIoT.Patterns.Command;
 using UMLIoT.Patterns.Factory.Devices;
+using DeviceCreator = UMLIoT.Patterns.Factory.Devices.DiviceCreator;
 
 namespace UMLIoT.Patterns.Facade;
 

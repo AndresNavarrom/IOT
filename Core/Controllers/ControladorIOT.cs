@@ -46,6 +46,11 @@ public class ControladorIOT
         command.execute();
     }
 
+    public IDevice? getDeviceById(int id)
+    {
+        return devices.FirstOrDefault(current => current is Device concrete && concrete.getId() == id);
+    }
+
     public List<IDevice> getAllDeviceInternal()
     {
         return devices;
