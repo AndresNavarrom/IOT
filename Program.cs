@@ -50,7 +50,7 @@ namespace UMLIoT
                         var password = Console.ReadLine() ?? string.Empty;
 
                         var user = facade.registerUser(name, email, password);
-                        Console.WriteLine($"Usuario registrado con id {user.GetID()}");
+                        Console.WriteLine($"Usuario registrado con id {user.GetId()}");
                         break;
 
                     case "2":
@@ -99,7 +99,7 @@ namespace UMLIoT
                             {
                                 if (device is Device concrete)
                                 {
-                                    Console.WriteLine($"Id: {concrete.getId()} | Tipo: {device.GetType().Name} | Name: {concrete.getName()} | Status: {device.getStatus().GetType().Name}");
+                                    Console.WriteLine($"Id: {concrete.getID()} | Tipo: {device.GetType().Name} | Name: {concrete.getName()} | Status: {device.getStatus().GetType().Name}");
                                 }
                                 else
                                 {
