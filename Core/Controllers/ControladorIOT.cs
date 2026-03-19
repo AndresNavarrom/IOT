@@ -16,7 +16,7 @@ public class ControladorIOT
     {
         var device = creator.DeviceCreatorMethod();
         devices.Add(device);
-        eventManager?.notifyObservers(device);
+        eventManager?.notifyObservers(device, "Device Added");
         return device;
     }
 
