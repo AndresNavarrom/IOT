@@ -2,7 +2,6 @@ namespace UMLIoT.Core.Devices;
 
 public class Camera : Device, IMonitorable
 {
-    
     public Camera(int id, string name, string ipAddress) : base(id, name, ipAddress)
     {
     }
@@ -10,11 +9,11 @@ public class Camera : Device, IMonitorable
     public string startRecording()
     {
     connect();
-    return $"Camera {name} recording";
+    return $"Camera {getName()} recording";
     }
 
     public string captureSnapshot()
     {
-    return $"Camera {name} snapshot captured";
+    return $"Camera {getName()} snapshot captured";
     }
 }

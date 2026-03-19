@@ -6,7 +6,7 @@ public class UserRepository
 {
     private readonly List<User> users = new();
 
-    public User registerUser(AbstractUserCreator userCreator)
+    public User registerUser(UserCreatorClass userCreator)
     {
         var user = userCreator.UserCreatorMethod();
         users.Add(user);
@@ -15,11 +15,11 @@ public class UserRepository
 
     public User? findById(int id)
     {
-        return users.FirstOrDefault(x => x.id == id);
+        return users.FirstOrDefault(x => x.GetId() == id);
     }
 
     public User? findByEmail(string email)
     {
-        return users.FirstOrDefault(x => x.email.Equals(email, StringComparison.OrdinalIgnoreCase));
+        return users.FirstOrDefault(x => x.GetEmail().Equals(email, StringComparison.OrdinalIgnoreCase));
     }
 }

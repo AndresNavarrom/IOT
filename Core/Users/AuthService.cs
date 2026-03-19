@@ -12,7 +12,7 @@ public class AuthService
     public bool login(string email, string password, string? ignored = null)
     {
         var user = userRepository.findByEmail(email);
-        return user is not null && user.password == password;
+        return user is not null && user.GetPassword() == password;
     }
 
     public void logout()

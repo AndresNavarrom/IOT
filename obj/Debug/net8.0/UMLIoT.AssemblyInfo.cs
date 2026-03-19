@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("UMLIoT")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5653fbe168d95753809e751f6e5003ac62ec2db5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9efceca57c3bd847d7dca2e65cc92d5c20ef8ca3")]
 [assembly: System.Reflection.AssemblyProductAttribute("UMLIoT")]
 [assembly: System.Reflection.AssemblyTitleAttribute("UMLIoT")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
