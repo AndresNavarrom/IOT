@@ -1,0 +1,25 @@
+# =========================
+# 🟦 VS Code
+# =========================
+.vscode/
+
+# Si quieres compartir configuración, usa esto en vez de ignorar todo:
+# .vscode/*
+# !.vscode/settings.json
+# !.vscode/extensions.json
+# !.vscode/launch.json
+# !.vscode/tasks.json
+
+# =========================
+# 🟦 Archivos temporales
+# =========================
+*.log
+*.tmp
+*.temp
+*.swp
+
+# =========================
+# 🟦 Sistema operativo
+# =========================
+.DS_Store
+Thumbs.db
