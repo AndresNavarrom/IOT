@@ -41,9 +41,9 @@ public class ControladorIOT
         return device?.getStatus().GetType().Name ?? string.Empty;
     }
 
-    public void executeCommand(Command cmd)
+    public void executeCommand(ICommand command)
     {
-        cmd.execute();
+        command.execute();
     }
 
     public List<IDevice> getAllDeviceInternal()

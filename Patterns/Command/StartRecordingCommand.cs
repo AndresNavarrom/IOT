@@ -2,17 +2,20 @@ using UMLIoT.Core.Devices;
 
 namespace UMLIoT.Patterns.Command;
 
-public class StartRecordingCommand : ICommand
+public class StartRecordingCommand implements ICommand
 {
-    private readonly IMonitorable device;
 
-    public StartRecordingCommand(IMonitorable device)
-    {
-        this.device = device;
-    }
+    private IMonitorable device;
 
+public StartRecordingCommand(IMonitorable device)
+{
+    this.device = device;
+}
+
+@Override
     public void execute()
-    {
-        device.startRecording();
-    }
+{
+    System.out.println("[Command] StartRecording");
+    device.startRecording();
+}
 }

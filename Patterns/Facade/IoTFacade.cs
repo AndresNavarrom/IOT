@@ -12,89 +12,127 @@ public class IoTFacade
     private readonly UserRepository userRepository;
     private readonly ControladorIOT controladorIOT;
 
+    private readonly Dictionary<string, DeviceCreator> creators;
+
     public IoTFacade()
     {
         authService = new AuthService();
         userRepository = new UserRepository();
         controladorIOT = new ControladorIOT();
+
+        // Registro de factories (mejor que switch)
+        creators = new Dictionary<string, DeviceCreator>()
+        {
+            { "camera", new CameraCreator() },
+            { "smartlight", new SmartlightCreator() },
+            { "alarm", new AlarmCreator() }
+        };
     }
 
-    public bool login(string email, string password)
+    // =========================
+    // AUTENTICACIÓN
+    // =========================
+
+    public bool Login(string email, string password)
     {
         return authService.login(email, password);
     }
 
-    public void logout(int userId)
+    public void Logout()
     {
         authService.logout();
     }
 
-    public IDevice? registerDevice(string type, string config)
-    {
-        DiviceCreator? creator = type.ToLowerInvariant() switch
-        {
-            "camera" => new CameraCreator(),
-            "smartlight" => new SmartlightCreator(),
-            "alarm" => new AlarmCreator(),
-            _ => null
-        };
+    // =========================
+    // DISPOSITIVOS
+    // =========================
 
-        if (creator is null)
+    public IDevice? RegisterDevice(string type, string config)
+    {
+        if (!creators.TryGetValue(type.ToLowerInvariant(), out var creator))
         {
+            Console.WriteLine("Tipo de dispositivo no soportado");
             return null;
         }
 
         return controladorIOT.addDevice(creator);
     }
 
-    public bool removeDevice(int deviceId)
+    public bool RemoveDevice(int deviceId)
     {
         return controladorIOT.removeDevice(deviceId);
     }
 
-    public void turnOnDevice(int deviceId)
+    public List<IDevice> GetAllDevices()
     {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
-        if (device is ISwitchable switchable)
-        {
-            controladorIOT.executeCommand(new TurnOnCommand(switchable));
-        }
+        return controladorIOT.getAllDevices();
     }
 
-    public void turnOffDevice(int deviceId)
-    {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
-        if (device is ISwitchable switchable)
-        {
-            controladorIOT.executeCommand(new TurnOffCommand(switchable));
-        }
-    }
-
-    public void activateAlarm(int deviceId)
-    {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
-        if (device is IAlarm alarm)
-        {
-            controladorIOT.executeCommand(new TriggerAlarmCommand(alarm));
-        }
-    }
-
-    public void startRecording(int deviceId)
-    {
-        IDevice? device = controladorIOT.getAllDeviceInternal().FirstOrDefault(current => current is Device concrete && concrete.getId() == deviceId);
-        if (device is IMonitorable monitorable)
-        {
-            controladorIOT.executeCommand(new StartRecordingCommand(monitorable));
-        }
-    }
-
-    public string getDeviceStatus(int deviceId)
+    public string GetDeviceStatus(int deviceId)
     {
         return controladorIOT.getDeviceStatus(deviceId);
     }
 
-    public List<IDevice> getAllDevice()
+    // =========================
+    // ACCIONES (COMMAND)
+    // =========================
+
+    public void TurnOnDevice(int deviceId)
     {
-        return controladorIOT.getAllDeviceInternal();
+        ExecuteIf<ISwitchable>(
+            deviceId,
+            device => new TurnOnCommand(device),
+            "El dispositivo no soporta encendido"
+        );
+    }
+
+    public void TurnOffDevice(int deviceId)
+    {
+        ExecuteIf<ISwitchable>(
+            deviceId,
+            device => new TurnOffCommand(device),
+            "El dispositivo no soporta apagado"
+        );
+    }
+
+    public void ActivateAlarm(int deviceId)
+    {
+        ExecuteIf<IAlarm>(
+            deviceId,
+            device => new TriggerAlarmCommand(device),
+            "El dispositivo no es una alarma"
+        );
+    }
+
+    public void StartRecording(int deviceId)
+    {
+        ExecuteIf<IMonitorable>(
+            deviceId,
+            device => new StartRecordingCommand(device),
+            "El dispositivo no soporta grabación"
+        );
+    }
+
+    // =========================
+    // MÉTODO GENÉRICO (CLAVE)
+    // =========================
+
+    private void ExecuteIf<T>(
+        int deviceId,
+        Func<T, ICommand> commandFactory,
+        string errorMessage
+    ) where T : class
+    {
+        var device = controladorIOT.getDeviceById(deviceId);
+
+        if (device is T typedDevice)
+        {
+            var command = commandFactory(typedDevice);
+            controladorIOT.executeCommand(command);
+        }
+        else
+        {
+            Console.WriteLine(errorMessage);
+        }
     }
 }

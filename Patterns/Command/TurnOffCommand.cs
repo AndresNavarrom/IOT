@@ -2,17 +2,20 @@ using UMLIoT.Core.Devices;
 
 namespace UMLIoT.Patterns.Command;
 
-public class TurnOffCommand : ICommand
+public class TurnOffCommand implements ICommand
 {
-    private readonly ISwitchable device;
 
-    public TurnOffCommand(ISwitchable device)
-    {
-        this.device = device;
-    }
+    private ISwitchable device;
 
+public TurnOffCommand(ISwitchable device)
+{
+    this.device = device;
+}
+
+@Override
     public void execute()
-    {
-        device.turnOff();
-    }
+{
+    System.out.println("[Command] TurnOff");
+    device.turnOff();
+}
 }
