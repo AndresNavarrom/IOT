@@ -4,7 +4,7 @@ namespace UMLIoT.Core.Devices;
 
 public interface IDevice
 {
-    bool connect();
-    bool disconnect();
-    DeviceStatus getStatus();
+ bool connect();
+ bool disconnect();
+ DeviceStatus getStatus();
 }

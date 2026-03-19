@@ -2,12 +2,21 @@ namespace UMLIoT.Core.Users;
 
 public class AuthService
 {
-    public bool login(string email, string password)
+    private readonly UserRepository userRepository;
+
+    public AuthService(UserRepository userRepository)
     {
-        return !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password);
+        this.userRepository = userRepository;
+    }
+
+    public bool login(string email, string password, string? ignored = null)
+    {
+        var user = userRepository.findByEmail(email);
+        return user is not null && user.password == password;
     }
 
     public void logout()
     {
+        Console.WriteLine("Sesión cerrada");
     }
 }

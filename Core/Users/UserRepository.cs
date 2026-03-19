@@ -4,22 +4,22 @@ namespace UMLIoT.Core.Users;
 
 public class UserRepository
 {
-    private readonly List<User> users;
+    private readonly List<User> users = new();
 
-    public UserRepository()
+    public User registerUser(AbstractUserCreator userCreator)
     {
-        users = new List<User>();
-    }
-
-    public User registerUser(UserCreator userCreator)
-    {
-        User user = userCreator.UserCreatorMethod();
+        var user = userCreator.UserCreatorMethod();
         users.Add(user);
         return user;
     }
 
     public User? findById(int id)
     {
-        return users.FirstOrDefault(user => user.GetId() == id);
+        return users.FirstOrDefault(x => x.id == id);
+    }
+
+    public User? findByEmail(string email)
+    {
+        return users.FirstOrDefault(x => x.email.Equals(email, StringComparison.OrdinalIgnoreCase));
     }
 }
