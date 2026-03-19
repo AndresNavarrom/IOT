@@ -19,4 +19,6 @@ public class AuthService
     {
         Console.WriteLine("Sesión cerrada");
     }
+
+    public User? getCurrentUser() => currentUser;
 }

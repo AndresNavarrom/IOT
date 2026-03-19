@@ -4,15 +4,17 @@ namespace UMLIoT.Patterns.Command;
 
 public class StartRecordingCommand : ICommand
 {
-    private readonly IMonitorable device;
 
-    public StartRecordingCommand(IMonitorable device)
-    {
-        this.device = device;
-    }
+    private IMonitorable device;
+
+public StartRecordingCommand(IMonitorable device)
+{
+    this.device = device;
+}
 
     public void execute()
-    {
-        device.startRecording();
-    }
+{
+    Console.WriteLine("[Command] StartRecording");
+    device.startRecording();
+}
 }

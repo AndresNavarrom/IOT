@@ -4,15 +4,17 @@ namespace UMLIoT.Patterns.Command;
 
 public class TriggerAlarmCommand : ICommand
 {
-    private readonly IAlarm device;
 
-    public TriggerAlarmCommand(IAlarm device)
-    {
-        this.device = device;
-    }
+    private IAlarm alarm;
+
+public TriggerAlarmCommand(IAlarm alarm)
+{
+    this.alarm = alarm;
+}
 
     public void execute()
-    {
-        device.trigger();
-    }
+{
+    Console.WriteLine("[Command] TriggerAlarm");
+    alarm.trigger();
+}
 }

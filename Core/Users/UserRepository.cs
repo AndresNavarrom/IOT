@@ -22,4 +22,9 @@ public class UserRepository
     {
         return users.FirstOrDefault(x => x.GetEmail().Equals(email, StringComparison.OrdinalIgnoreCase));
     }
+
+    public User? findByEmail(string email)
+    {
+        return users.FirstOrDefault(user => user.GetEmail() == email);
+    }
 }
