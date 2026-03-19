@@ -3,6 +3,7 @@ using UMLIoT.Core.Devices;
 using UMLIoT.Core.Users;
 using UMLIoT.Patterns.Command;
 using UMLIoT.Patterns.Factory.Devices;
+using DeviceCreator = UMLIoT.Patterns.Factory.Devices.DiviceCreator;
 
 namespace UMLIoT.Patterns.Facade;
 
@@ -19,12 +20,16 @@ public class IoTFacade
         this.controladorIOT = controladorIOT;
     }
 
-    public bool login(string email, string password)
+    // =========================
+    // AUTENTICACIÓN
+    // =========================
+
+    public bool Login(string email, string password)
     {
         return authService.login(email, password, password);
     }
 
-    public void logout(int userId)
+    public void Logout()
     {
         var user = userRepository.findById(userId);
         if (user is not null)
@@ -33,10 +38,15 @@ public class IoTFacade
         }
     }
 
-    public IDevice? registerDevice(string type, object config)
+    // =========================
+    // DISPOSITIVOS
+    // =========================
+
+    public IDevice? RegisterDevice(string type, string config)
     {
-        if (config is not Dictionary<string, string> values)
+        if (!creators.TryGetValue(type.ToLowerInvariant(), out var creator))
         {
+            Console.WriteLine("Tipo de dispositivo no soportado");
             return null;
         }
 
@@ -55,12 +65,12 @@ public class IoTFacade
         return controladorIOT.addDevice(creator);
     }
 
-    public bool removeDevice(int deviceId)
+    public bool RemoveDevice(int deviceId)
     {
         return controladorIOT.removeDevice(deviceId);
     }
 
-    public void turnOnDevice(int deviceId)
+    public List<IDevice> GetAllDevices()
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is ISwitchable switchable)
@@ -69,7 +79,7 @@ public class IoTFacade
         }
     }
 
-    public void turnOffDevice(int deviceId)
+    public string GetDeviceStatus(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is ISwitchable switchable)
@@ -78,7 +88,11 @@ public class IoTFacade
         }
     }
 
-    public void activateAlarm(int deviceId)
+    // =========================
+    // ACCIONES (COMMAND)
+    // =========================
+
+    public void TurnOnDevice(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is IAlarm alarm)
@@ -87,7 +101,7 @@ public class IoTFacade
         }
     }
 
-    public void startRecording(int deviceId)
+    public void TurnOffDevice(int deviceId)
     {
         var device = controladorIOT.findDeviceById(deviceId);
         if (device is IMonitorable monitorable)
@@ -96,12 +110,16 @@ public class IoTFacade
         }
     }
 
-    public string getDeviceStatus(int deviceId)
+    public void ActivateAlarm(int deviceId)
     {
-        return controladorIOT.getDeviceStatus(deviceId);
+        ExecuteIf<IAlarm>(
+            deviceId,
+            device => new TriggerAlarmCommand(device),
+            "El dispositivo no es una alarma"
+        );
     }
 
-    public List<IDevice> getAllDevice()
+    public void StartRecording(int deviceId)
     {
         return controladorIOT.getAllDevices();
     }
