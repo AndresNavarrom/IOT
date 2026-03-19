@@ -17,8 +17,8 @@ public class IoTFacade
 
     public IoTFacade()
     {
-        authService = new AuthService();
         userRepository = new UserRepository();
+        authService = new AuthService(userRepository);
         controladorIOT = new ControladorIOT();
 
         // Registro de factories (mejor que switch)

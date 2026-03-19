@@ -22,4 +22,9 @@ public class UserRepository
     {
         return users.FirstOrDefault(user => user.GetId() == id);
     }
+
+    public User? findByEmail(string email)
+    {
+        return users.FirstOrDefault(user => user.GetEmail() == email);
+    }
 }
