@@ -13,6 +13,12 @@ public class UserRepository
         return user;
     }
 
+    public User registerUser(User user)
+    {
+        users.Add(user);
+        return user;
+    }
+
     public User? findById(int id)
     {
         return users.FirstOrDefault(x => x.GetId() == id);
@@ -21,10 +27,5 @@ public class UserRepository
     public User? findByEmail(string email)
     {
         return users.FirstOrDefault(x => x.GetEmail().Equals(email, StringComparison.OrdinalIgnoreCase));
-    }
-
-    public User? findByEmail(string email)
-    {
-        return users.FirstOrDefault(user => user.GetEmail() == email);
     }
 }

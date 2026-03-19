@@ -2,56 +2,50 @@ using UMLIoT.Patterns.State;
 
 namespace UMLIoT.Core.Devices;
 
-public class Device : IDevice
+public abstract class Device : IDevice
 {
-    private int id;
-    private string name;
-    private DeviceStatus status;
-    private string ipAddress;
+    protected int id;
+    protected string name;
+    protected DeviceStatus status;
+    protected string ipAddress;
 
     protected Device(int id, string name, string ipAddress)
     {
-    this.id = id;
-    this.name = name;
-    this.ipAddress = ipAddress;
-    status = new OfflineStatus();
+        this.id = id;
+        this.name = name;
+        this.ipAddress = ipAddress;
+        status = new OfflineStatus();
     }
 
     public virtual bool connect()
     {
-    status = new OnlineStatus();
-    return true;
+        status = new OnlineStatus();
+        return true;
     }
 
     public virtual bool disconnect()
     {
-    status = new OfflineStatus();
-    return true;
+        status = new OfflineStatus();
+        return true;
     }
 
     public virtual DeviceStatus getStatus()
     {
-    return status;
+        return status;
     }
 
     public virtual void handleStatus()
     {
-    status.handleStatus();
-    }
-
-    public virtual int getId()
-    {
-    return id;
+        status.handleStatus(this);
     }
 
     public virtual int getID()
     {
-    return getId();
+        return id;
     }
 
     public virtual string getName()
     {
-    return name;
+        return name;
     }
-
 }

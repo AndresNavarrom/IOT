@@ -22,7 +22,7 @@ public class ControladorIOT
 
     public bool removeDevice(int id)
     {
-        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getId() == id);
+        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getID() == id);
         if (device is null)
         {
             return false;
@@ -34,18 +34,18 @@ public class ControladorIOT
 
     public string getDeviceStatus(int id)
     {
-        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getId() == id);
+        var device = devices.FirstOrDefault(d => d is Device concrete && concrete.getID() == id);
         return device is null ? "Device not found" : device.getStatus().GetType().Name;
     }
 
-    public void executeCommand(Command command)
+    public void executeCommand(ICommand command)
     {
         command.execute();
     }
 
     public IDevice? getDeviceById(int id)
     {
-        return devices.FirstOrDefault(current => current is Device concrete && concrete.getId() == id);
+        return devices.FirstOrDefault(current => current is Device concrete && concrete.getID() == id);
     }
 
     public List<IDevice> getAllDevices()
@@ -55,7 +55,7 @@ public class ControladorIOT
 
     public Device? findDeviceById(int id)
     {
-        return devices.OfType<Device>().FirstOrDefault(x => x.getId() == id);
+        return devices.OfType<Device>().FirstOrDefault(x => x.getID() == id);
     }
 
     public void addUser(User user)

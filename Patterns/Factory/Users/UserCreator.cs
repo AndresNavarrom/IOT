@@ -2,7 +2,7 @@ using UMLIoT.Core.Users;
 
 namespace UMLIoT.Patterns.Factory.Users;
 
-public class UserCreator : Abstract.UserCreator
+public class UserCreator : UserCreatorClass
 {
     private static int currentId = 1;
     private readonly string name;

@@ -50,7 +50,7 @@ namespace UMLIoT
                         var password = Console.ReadLine() ?? string.Empty;
 
                         var user = facade.registerUser(name, email, password);
-                        Console.WriteLine($"Usuario registrado con id {user.GetId()}");
+                        Console.WriteLine($"Usuario registrado con id {user.GetID()}");
                         break;
 
                     case "2":

@@ -6,6 +6,7 @@ public class Smartlight : Device, ISwitchable
 {
     private string color;
     private Schedule schedule;
+
     public Smartlight(int id, string name, string ipAddress, string color, Schedule schedule) : base(id, name, ipAddress)
     {
     this.color = color;
@@ -25,12 +26,12 @@ public class Smartlight : Device, ISwitchable
     public void turnOn()
     {
     connect();
-    Console.WriteLine($"Smartlight {name} turned on with color {color}");
+    Console.WriteLine($"Smartlight {getName()} turned on with color {color}");
     }
 
     public void turnOff()
     {
     disconnect();
-    Console.WriteLine($"Smartlight {name} turned off");
+    Console.WriteLine($"Smartlight {getName()} turned off");
     }
 }
