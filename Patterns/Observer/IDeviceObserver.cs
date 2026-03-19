@@ -4,5 +4,5 @@ namespace UMLIoT.Patterns.Observer;
 
 public interface IDeviceObserver
 {
-    void update(Device device);
+    void update(IDevice device);
 }

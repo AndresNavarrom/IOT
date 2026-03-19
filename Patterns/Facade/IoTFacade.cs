@@ -13,21 +13,11 @@ public class IoTFacade
     private readonly UserRepository userRepository;
     private readonly ControladorIOT controladorIOT;
 
-    private readonly Dictionary<string, DeviceCreator> creators;
-
-    public IoTFacade()
+    public IoTFacade(AuthService authService, UserRepository userRepository, ControladorIOT controladorIOT)
     {
-        userRepository = new UserRepository();
-        authService = new AuthService(userRepository);
-        controladorIOT = new ControladorIOT();
-
-        // Registro de factories (mejor que switch)
-        creators = new Dictionary<string, DeviceCreator>()
-        {
-            { "camera", new CameraCreator() },
-            { "smartlight", new SmartlightCreator() },
-            { "alarm", new AlarmCreator() }
-        };
+        this.authService = authService;
+        this.userRepository = userRepository;
+        this.controladorIOT = controladorIOT;
     }
 
     // =========================
@@ -36,12 +26,16 @@ public class IoTFacade
 
     public bool Login(string email, string password)
     {
-        return authService.login(email, password);
+        return authService.login(email, password, password);
     }
 
     public void Logout()
     {
-        authService.logout();
+        var user = userRepository.findById(userId);
+        if (user is not null)
+        {
+            authService.logout();
+        }
     }
 
     // =========================
@@ -56,6 +50,18 @@ public class IoTFacade
             return null;
         }
 
+        var id = int.Parse(values["id"]);
+        var name = values["name"];
+        var ipAddress = values["ipAddress"];
+
+        DeviceCreator creator = type.ToLower() switch
+        {
+            "camera" => new CameraCreator(id, name, ipAddress),
+            "smartlight" => new SmartlightCreator(id, name, ipAddress, values.GetValueOrDefault("color", "White"), values.GetValueOrDefault("schedule", "Default")),
+            "alarm" => new AlarmCreator(id, name, ipAddress),
+            _ => throw new InvalidOperationException("Invalid device type")
+        };
+
         return controladorIOT.addDevice(creator);
     }
 
@@ -66,12 +72,20 @@ public class IoTFacade
 
     public List<IDevice> GetAllDevices()
     {
-        return controladorIOT.getAllDeviceInternal();
+        var device = controladorIOT.findDeviceById(deviceId);
+        if (device is ISwitchable switchable)
+        {
+            controladorIOT.executeCommand(new TurnOnCommand(switchable));
+        }
     }
 
     public string GetDeviceStatus(int deviceId)
     {
-        return controladorIOT.getDeviceStatus(deviceId);
+        var device = controladorIOT.findDeviceById(deviceId);
+        if (device is ISwitchable switchable)
+        {
+            controladorIOT.executeCommand(new TurnOffCommand(switchable));
+        }
     }
 
     // =========================
@@ -80,20 +94,20 @@ public class IoTFacade
 
     public void TurnOnDevice(int deviceId)
     {
-        ExecuteIf<ISwitchable>(
-            deviceId,
-            device => new TurnOnCommand(device),
-            "El dispositivo no soporta encendido"
-        );
+        var device = controladorIOT.findDeviceById(deviceId);
+        if (device is IAlarm alarm)
+        {
+            controladorIOT.executeCommand(new TriggerAlarmCommand(alarm));
+        }
     }
 
     public void TurnOffDevice(int deviceId)
     {
-        ExecuteIf<ISwitchable>(
-            deviceId,
-            device => new TurnOffCommand(device),
-            "El dispositivo no soporta apagado"
-        );
+        var device = controladorIOT.findDeviceById(deviceId);
+        if (device is IMonitorable monitorable)
+        {
+            controladorIOT.executeCommand(new StartRecordingCommand(monitorable));
+        }
     }
 
     public void ActivateAlarm(int deviceId)
@@ -107,33 +121,6 @@ public class IoTFacade
 
     public void StartRecording(int deviceId)
     {
-        ExecuteIf<IMonitorable>(
-            deviceId,
-            device => new StartRecordingCommand(device),
-            "El dispositivo no soporta grabación"
-        );
-    }
-
-    // =========================
-    // MÉTODO GENÉRICO (CLAVE)
-    // =========================
-
-    private void ExecuteIf<T>(
-        int deviceId,
-        Func<T, ICommand> commandFactory,
-        string errorMessage
-    ) where T : class
-    {
-        var device = controladorIOT.getDeviceById(deviceId);
-
-        if (device is T typedDevice)
-        {
-            var command = commandFactory(typedDevice);
-            controladorIOT.executeCommand(command);
-        }
-        else
-        {
-            Console.WriteLine(errorMessage);
-        }
+        return controladorIOT.getAllDevices();
     }
 }

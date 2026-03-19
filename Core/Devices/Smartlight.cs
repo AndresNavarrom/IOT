@@ -5,29 +5,32 @@ namespace UMLIoT.Core.Devices;
 public class Smartlight : Device, ISwitchable
 {
     private string color;
-    private Schedule? schedule;
-
-    public Smartlight()
+    private Schedule schedule;
+    public Smartlight(int id, string name, string ipAddress, string color, Schedule schedule) : base(id, name, ipAddress)
     {
-        color = string.Empty;
-        schedule = null;
+    this.color = color;
+    this.schedule = schedule;
     }
 
     public void setColor(string color)
     {
-        this.color = color;
+    this.color = color;
     }
 
     public void setSchedule()
     {
-        schedule = new object();
+    schedule = $"Updated-{DateTime.Now:yyyyMMddHHmmss}";
     }
 
     public void turnOn()
     {
+    connect();
+    Console.WriteLine($"Smartlight {name} turned on with color {color}");
     }
 
     public void turnOff()
     {
+    disconnect();
+    Console.WriteLine($"Smartlight {name} turned off");
     }
 }
