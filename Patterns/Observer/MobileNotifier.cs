@@ -4,7 +4,7 @@ namespace UMLIoT.Patterns.Observer;
 
 public class MobileNotifier : IDeviceObserver
 {
-    public void update(Device device)
+    public void update(IDevice device)
     {
     }
 }
