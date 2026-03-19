@@ -6,12 +6,7 @@ public class OnlineStatus : DeviceStatus
 {
     public override void handleStatus(Device device)
     {
-        Console.WriteLine("El dispositivo está funcionando correctamente.");
-
-        
-        //device.Connect();
-
-        
+        Console.WriteLine("El dispositivo esta funcionando correctamente.");
         Console.WriteLine("Procesando datos...");
     }
 }

@@ -23,12 +23,9 @@ public class DeviceEventManager : IDeviceSubject
 
     public void notifyObservers(IDevice device)
     {
-        if (device is Device concreteDevice)
+        foreach (IDeviceObserver observer in observers)
         {
-            foreach (IDeviceObserver observer in observers)
-            {
-                observer.update(concreteDevice);
-            }
+            observer.update(device);
         }
     }
 }
