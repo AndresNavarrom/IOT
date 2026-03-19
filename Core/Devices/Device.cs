@@ -44,7 +44,7 @@ public class Device : IDevice
 
     public virtual void handleStatus()
     {
-        status.handleStatus();
+        status.handleStatus(this);
     }
 
     public virtual int getId()
