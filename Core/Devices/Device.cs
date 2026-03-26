@@ -48,4 +48,19 @@ public abstract class Device : IDevice
     {
         return name;
     }
+
+    public virtual void setID(int id)
+    {
+        this.id = id;
+    }
+
+    public virtual void setIPAddress(string ipAddress)
+    {
+        this.ipAddress = ipAddress;
+    }
+
+    public virtual string getIPAddress()
+    {
+        return ipAddress;
+    }
 }

@@ -11,10 +11,17 @@ public class ControladorIOT
     private readonly List<IDevice> devices = new();
     private readonly List<User> users = new();
     private DeviceEventManager? eventManager;
+    private int nextDeviceId = 1;
 
     public IDevice addDevice(DeviceCreator creator)
     {
         var device = creator.DeviceCreatorMethod();
+        if (device is Device concrete)
+        {
+            concrete.setID(nextDeviceId);
+            concrete.setIPAddress($"192.168.1.{nextDeviceId}");
+            nextDeviceId++;
+        }
         devices.Add(device);
         eventManager?.notifyObservers(device, "Device Added");
         return device;

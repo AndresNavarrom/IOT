@@ -31,4 +31,6 @@ public class AuthService
     }
 
     public User? getCurrentUser() => currentUser;
+
+    public bool isLoggedIn() => currentUser is not null;
 }

@@ -64,16 +64,18 @@ namespace UMLIoT
                         break;
 
                     case "3":
+                        if (!facade.isUserLoggedIn())
+                        {
+                            Console.WriteLine("Debe iniciar sesión para registrar un dispositivo.");
+                            break;
+                        }
+
                         Console.Write("Tipo de dispositivo (camera/smartlight/alarm): ");
                         var type = (Console.ReadLine() ?? string.Empty).Trim();
                         var config = new Dictionary<string, string>();
 
-                        Console.Write("Id: ");
-                        config["id"] = Console.ReadLine() ?? "0";
                         Console.Write("Name: ");
                         config["name"] = Console.ReadLine() ?? string.Empty;
-                        Console.Write("IpAddress: ");
-                        config["ipAddress"] = Console.ReadLine() ?? string.Empty;
 
                         if (type.Equals("smartlight", StringComparison.OrdinalIgnoreCase))
                         {
@@ -84,7 +86,18 @@ namespace UMLIoT
                         }
 
                         var registered = facade.registerDevice(type, config);
-                        Console.WriteLine(registered is null ? "No se pudo crear el dispositivo" : "Dispositivo registrado");
+                        if (registered is null)
+                        {
+                            Console.WriteLine("No se pudo crear el dispositivo");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Dispositivo registrado");
+                            if (registered is Device dev && type.Equals("camera", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"IP Asignada a la Cámara: {dev.getIPAddress()}");
+                            }
+                        }
                         break;
 
                     case "4":
@@ -99,7 +112,7 @@ namespace UMLIoT
                             {
                                 if (device is Device concrete)
                                 {
-                                    Console.WriteLine($"Id: {concrete.getID()} | Tipo: {device.GetType().Name} | Name: {concrete.getName()} | Status: {device.getStatus().GetType().Name}");
+                                    Console.WriteLine($"Id: {concrete.getID()} | Tipo: {device.GetType().Name} | Name: {concrete.getName()} | IP: {concrete.getIPAddress()} | Status: {device.getStatus().GetType().Name}");
                                 }
                                 else
                                 {
