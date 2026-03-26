@@ -50,6 +50,11 @@ public class IoTFacade
         }
     }
 
+    public bool isUserLoggedIn()
+    {
+        return authService.isLoggedIn();
+    }
+
     public void setEventManager(DeviceEventManager eventManager)
     {
         controladorIOT.setEventManager(eventManager);
