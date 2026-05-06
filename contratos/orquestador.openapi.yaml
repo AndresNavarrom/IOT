@@ -1,0 +1,340 @@
+openapi: 3.0.3
+
+info:
+  title: IoT.Orquestador - API de Composición
+  version: 1.0.0
+  description: |
+    Servicio (S6) que expone los casos de uso del sistema componiendo
+    llamadas a los demás servicios. Sucesor directo de `IoTFacade` y
+    del menú de `Program.cs`.
+
+    Es el único servicio que los clientes externos (consola, web, móvil)
+    deberían consumir directamente; los servicios S1-S5 quedan internos.
+
+    Tipo SOA (Erl): Process Service.
+    Compone: IoT.Identidad, IoT.Inventario, IoT.Control, IoT.Estado, IoT.Notificaciones.
+
+    Mapeo de los 11 casos del menú original:
+      1. Registrar usuario     -> POST /cuenta/registro
+      2. Login                 -> POST /cuenta/login
+      3. Registrar dispositivo -> POST /dispositivos
+      4. Ver dispositivos      -> GET  /dispositivos
+      5. Turn on               -> POST /dispositivos/{id}/encender
+      6. Turn off              -> POST /dispositivos/{id}/apagar
+      7. Activate alarm        -> POST /dispositivos/{id}/activar-alarma
+      8. Start recording       -> POST /dispositivos/{id}/iniciar-grabacion
+      9. Remove device         -> DELETE /dispositivos/{id}
+     10. Get device status     -> GET  /dispositivos/{id}/estado
+     11. Logout                -> POST /cuenta/logout
+  contact:
+    name: Equipo IoT
+
+servers:
+  - url: http://localhost:5000
+    description: Desarrollo local
+
+tags:
+  - name: cuenta
+    description: Registro y autenticación (delegado a IoT.Identidad)
+  - name: dispositivos
+    description: Gestión y control unificado de dispositivos
+
+paths:
+
+  /cuenta/registro:
+    post:
+      tags: [cuenta]
+      summary: Registrar usuario
+      operationId: registrarCuenta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, correo, password]
+              properties:
+                nombre: { type: string }
+                correo: { type: string, format: email }
+                password: { type: string, format: password, minLength: 8 }
+      responses:
+        '201':
+          description: Usuario registrado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usuarioId, correo]
+                properties:
+                  usuarioId: { type: string, format: uuid }
+                  correo:    { type: string, format: email }
+        '400':
+          $ref: '#/components/responses/ErrorValidacion'
+        '409':
+          description: Correo ya registrado
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+
+  /cuenta/login:
+    post:
+      tags: [cuenta]
+      summary: Iniciar sesión
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, password]
+              properties:
+                correo:   { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Token JWT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Token' }
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+
+  /cuenta/logout:
+    post:
+      tags: [cuenta]
+      summary: Cerrar sesión
+      operationId: logout
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '204':
+          description: Sesión cerrada
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /dispositivos:
+    get:
+      tags: [dispositivos]
+      summary: Listar dispositivos del usuario actual
+      operationId: listarMisDispositivos
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DispositivoResumen' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+    post:
+      tags: [dispositivos]
+      summary: Registrar un dispositivo
+      description: Compone Inventario (alta) + Estado (init `fuera-de-linea`) + Notificaciones (auditoría).
+      operationId: registrarDispositivo
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tipo, nombre]
+              properties:
+                tipo: { type: string, enum: [camara, lampara, alarma] }
+                nombre: { type: string }
+                color:
+                  type: string
+                  description: Solo para tipo=lampara
+                horario:
+                  type: string
+                  description: Solo para tipo=lampara
+      responses:
+        '201':
+          description: Dispositivo creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DispositivoResumen' }
+        '400':
+          $ref: '#/components/responses/ErrorValidacion'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /dispositivos/{id}:
+    delete:
+      tags: [dispositivos]
+      summary: Eliminar un dispositivo
+      operationId: eliminarDispositivo
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '204':
+          description: Eliminado
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /dispositivos/{id}/estado:
+    get:
+      tags: [dispositivos]
+      summary: Consultar estado actual
+      operationId: consultarEstado
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200':
+          description: Estado actual
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dispositivoId, estado]
+                properties:
+                  dispositivoId: { type: string, format: uuid }
+                  estado:
+                    type: string
+                    enum: [en-linea, fuera-de-linea, error]
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /dispositivos/{id}/encender:
+    post:
+      tags: [dispositivos]
+      summary: Encender dispositivo
+      operationId: encender
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200': { description: Comando ejecutado }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/CapacidadNoSoportada' }
+
+  /dispositivos/{id}/apagar:
+    post:
+      tags: [dispositivos]
+      summary: Apagar dispositivo
+      operationId: apagar
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200': { description: Comando ejecutado }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/CapacidadNoSoportada' }
+
+  /dispositivos/{id}/activar-alarma:
+    post:
+      tags: [dispositivos]
+      summary: Activar alarma
+      operationId: activarAlarma
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200': { description: Comando ejecutado }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/CapacidadNoSoportada' }
+
+  /dispositivos/{id}/iniciar-grabacion:
+    post:
+      tags: [dispositivos]
+      summary: Iniciar grabación
+      operationId: iniciarGrabacion
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200': { description: Comando ejecutado }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409': { $ref: '#/components/responses/CapacidadNoSoportada' }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DispositivoId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    NoAutenticado:
+      description: Token ausente o inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    NoEncontrado:
+      description: Recurso no encontrado
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    ErrorValidacion:
+      description: Datos de entrada inválidos
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemaValidacion' }
+    CapacidadNoSoportada:
+      description: El dispositivo no soporta la capacidad requerida (delegado de S3)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+
+  schemas:
+
+    Token:
+      type: object
+      required: [accessToken, tokenType, expiresIn, usuarioId]
+      properties:
+        accessToken: { type: string }
+        tokenType:   { type: string, enum: [Bearer] }
+        expiresIn:   { type: integer }
+        usuarioId:   { type: string, format: uuid }
+
+    DispositivoResumen:
+      type: object
+      required: [id, tipo, nombre, ipAddress]
+      properties:
+        id:        { type: string, format: uuid }
+        tipo:      { type: string, enum: [camara, lampara, alarma] }
+        nombre:    { type: string }
+        ipAddress: { type: string, format: ipv4 }
+        estado:
+          type: string
+          enum: [en-linea, fuera-de-linea, error]
+          nullable: true
+
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:   { type: string, format: uri }
+        title:  { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri }
+
+    ProblemaValidacion:
+      allOf:
+        - $ref: '#/components/schemas/Problema'
+        - type: object
+          properties:
+            errores:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }

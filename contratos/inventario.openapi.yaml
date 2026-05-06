@@ -1,0 +1,281 @@
+openapi: 3.0.3
+
+info:
+  title: IoT.Inventario - Servicio de Registro de Dispositivos
+  version: 1.0.0
+  description: |
+    Servicio (S2) responsable del inventario CRUD de dispositivos IoT
+    y la asignación atómica de identificadores y direcciones IP.
+
+    Reemplaza la sección de inventario de `ControladorIOT` y la
+    jerarquía `DeviceCreator`/`Camera`/`Smartlight`/`Alarm` del monolito.
+
+    Tipo SOA (Erl): Entity Service.
+    Eventos publicados (ver `eventos.asyncapi.yaml`):
+      - dispositivo.ciclo-vida.creado
+      - dispositivo.ciclo-vida.eliminado
+  contact:
+    name: Equipo IoT
+
+servers:
+  - url: http://localhost:5002
+    description: Desarrollo local
+
+tags:
+  - name: dispositivos
+    description: Inventario de dispositivos IoT
+
+paths:
+
+  /dispositivos:
+    get:
+      tags: [dispositivos]
+      summary: Listar dispositivos
+      operationId: listarDispositivos
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - name: tipo
+          in: query
+          required: false
+          schema: { $ref: '#/components/schemas/TipoDispositivo' }
+        - name: propietario
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Lista de dispositivos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Dispositivo' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+    post:
+      tags: [dispositivos]
+      summary: Registrar un nuevo dispositivo
+      description: |
+        El servicio asigna `id` (UUID v4) e `ipAddress` (`192.168.1.x`)
+        de forma atómica. El cliente no debe intentar fijarlos.
+      operationId: registrarDispositivo
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistroDispositivo' }
+      responses:
+        '201':
+          description: Dispositivo registrado
+          headers:
+            Location:
+              description: URI del dispositivo creado
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dispositivo' }
+        '400':
+          $ref: '#/components/responses/ErrorValidacion'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /dispositivos/{id}:
+    get:
+      tags: [dispositivos]
+      summary: Obtener un dispositivo por id
+      operationId: obtenerDispositivo
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200':
+          description: Dispositivo encontrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dispositivo' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+    delete:
+      tags: [dispositivos]
+      summary: Eliminar un dispositivo
+      operationId: eliminarDispositivo
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '204':
+          description: Dispositivo eliminado
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /dispositivos/{id}/red:
+    patch:
+      tags: [dispositivos]
+      summary: Reasignar la dirección IP de un dispositivo
+      operationId: reasignarRed
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ipAddress]
+              properties:
+                ipAddress: { type: string, format: ipv4 }
+      responses:
+        '200':
+          description: IP reasignada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dispositivo' }
+        '400':
+          $ref: '#/components/responses/ErrorValidacion'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          description: IP ya en uso por otro dispositivo
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DispositivoId:
+      name: id
+      in: path
+      required: true
+      description: Identificador único del dispositivo (UUID v4)
+      schema: { type: string, format: uuid }
+
+  responses:
+    NoAutenticado:
+      description: Token ausente, expirado o inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    NoEncontrado:
+      description: Dispositivo no encontrado
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    ErrorValidacion:
+      description: Datos de entrada inválidos
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemaValidacion' }
+
+  schemas:
+
+    TipoDispositivo:
+      type: string
+      enum: [camara, lampara, alarma]
+      description: |
+        - `camara`: dispositivo de monitoreo con grabación (ex `Camera`)
+        - `lampara`: luz inteligente con color y horario (ex `Smartlight`)
+        - `alarma`: dispositivo disuasorio (ex `Alarm`)
+
+    Dispositivo:
+      type: object
+      required: [id, tipo, nombre, ipAddress, propietarioId]
+      discriminator:
+        propertyName: tipo
+        mapping:
+          camara: '#/components/schemas/Camara'
+          lampara: '#/components/schemas/Lampara'
+          alarma: '#/components/schemas/Alarma'
+      properties:
+        id: { type: string, format: uuid }
+        tipo: { $ref: '#/components/schemas/TipoDispositivo' }
+        nombre: { type: string, minLength: 1, maxLength: 80 }
+        ipAddress:
+          type: string
+          format: ipv4
+          description: Asignada por el servicio en el momento del registro
+          example: 192.168.1.5
+        propietarioId:
+          type: string
+          format: uuid
+          description: Usuario dueño (extraído del JWT al registrar)
+
+    Camara:
+      allOf: [ { $ref: '#/components/schemas/Dispositivo' } ]
+
+    Lampara:
+      allOf:
+        - $ref: '#/components/schemas/Dispositivo'
+        - type: object
+          required: [color, horario]
+          properties:
+            color: { type: string, example: White }
+            horario:
+              type: string
+              description: Ventana de encendido (formato libre por ahora)
+              example: "20:00-23:00"
+
+    Alarma:
+      allOf: [ { $ref: '#/components/schemas/Dispositivo' } ]
+
+    RegistroDispositivo:
+      type: object
+      required: [tipo, nombre]
+      discriminator:
+        propertyName: tipo
+        mapping:
+          camara: '#/components/schemas/RegistroCamara'
+          lampara: '#/components/schemas/RegistroLampara'
+          alarma: '#/components/schemas/RegistroAlarma'
+      properties:
+        tipo: { $ref: '#/components/schemas/TipoDispositivo' }
+        nombre: { type: string, minLength: 1, maxLength: 80 }
+
+    RegistroCamara:
+      allOf: [ { $ref: '#/components/schemas/RegistroDispositivo' } ]
+
+    RegistroLampara:
+      allOf:
+        - $ref: '#/components/schemas/RegistroDispositivo'
+        - type: object
+          required: [color, horario]
+          properties:
+            color: { type: string }
+            horario: { type: string }
+
+    RegistroAlarma:
+      allOf: [ { $ref: '#/components/schemas/RegistroDispositivo' } ]
+
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri }
+
+    ProblemaValidacion:
+      allOf:
+        - $ref: '#/components/schemas/Problema'
+        - type: object
+          properties:
+            errores:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }

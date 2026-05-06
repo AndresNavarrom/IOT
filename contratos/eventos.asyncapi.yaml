@@ -1,0 +1,142 @@
+asyncapi: 2.6.0
+
+info:
+  title: UMLIoT - Bus de Eventos de Dominio
+  version: 1.0.0
+  description: |
+    Contrato del bus de eventos compartido entre los servicios SOA de UMLIoT.
+
+    En desarrollo local se implementa con un `InMemoryEventBus` (proyecto
+    `compartido/IoT.Bus`); el contrato es agnóstico al broker para poder
+    migrar a RabbitMQ/Kafka sin cambiar publishers ni subscribers.
+
+    Convención de canales: `dispositivo.<aspecto>.<accion-en-pasado>`.
+    Reemplaza el `DeviceEventManager.notifyObservers(...)` in-process del monolito.
+
+defaultContentType: application/json
+
+servers:
+  local:
+    url: in-memory://eventos
+    protocol: in-memory
+    description: Bus en memoria (desarrollo)
+
+channels:
+
+  dispositivo.ciclo-vida.creado:
+    description: Un nuevo dispositivo fue registrado en el inventario.
+    publish:
+      operationId: publicarDispositivoCreado
+      message: { $ref: '#/components/messages/DispositivoCreado' }
+    subscribe:
+      operationId: suscribirDispositivoCreado
+      message: { $ref: '#/components/messages/DispositivoCreado' }
+
+  dispositivo.ciclo-vida.eliminado:
+    description: Un dispositivo fue eliminado del inventario.
+    publish:
+      operationId: publicarDispositivoEliminado
+      message: { $ref: '#/components/messages/DispositivoEliminado' }
+    subscribe:
+      operationId: suscribirDispositivoEliminado
+      message: { $ref: '#/components/messages/DispositivoEliminado' }
+
+  dispositivo.control.encendido:
+    description: Comando de encendido ejecutado correctamente.
+    publish:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+    subscribe:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+
+  dispositivo.control.apagado:
+    description: Comando de apagado ejecutado correctamente.
+    publish:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+    subscribe:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+
+  dispositivo.control.alarma-disparada:
+    description: Una alarma fue disparada.
+    publish:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+    subscribe:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+
+  dispositivo.control.grabacion-iniciada:
+    description: Inició una grabación en un dispositivo monitorable.
+    publish:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+    subscribe:
+      message: { $ref: '#/components/messages/ComandoEjecutado' }
+
+  dispositivo.estado.cambiado:
+    description: Un dispositivo cambió de estado (en-línea, fuera-de-línea, error).
+    publish:
+      message: { $ref: '#/components/messages/EstadoCambiado' }
+    subscribe:
+      message: { $ref: '#/components/messages/EstadoCambiado' }
+
+components:
+
+  messages:
+
+    DispositivoCreado:
+      name: DispositivoCreado
+      title: Evento de creación de dispositivo
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventoId, dispositivoId, tipo, nombre, propietarioId, ipAddress, ocurridoEn]
+        properties:
+          eventoId:       { type: string, format: uuid }
+          dispositivoId:  { type: string, format: uuid }
+          tipo:           { type: string, enum: [camara, lampara, alarma] }
+          nombre:         { type: string }
+          propietarioId:  { type: string, format: uuid }
+          ipAddress:      { type: string, format: ipv4 }
+          ocurridoEn:     { type: string, format: date-time }
+
+    DispositivoEliminado:
+      name: DispositivoEliminado
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventoId, dispositivoId, ocurridoEn]
+        properties:
+          eventoId:      { type: string, format: uuid }
+          dispositivoId: { type: string, format: uuid }
+          ocurridoEn:    { type: string, format: date-time }
+
+    ComandoEjecutado:
+      name: ComandoEjecutado
+      title: Evento genérico de comando ejecutado sobre un dispositivo
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventoId, comandoId, dispositivoId, comando, ocurridoEn]
+        properties:
+          eventoId:      { type: string, format: uuid }
+          comandoId:     { type: string, format: uuid }
+          dispositivoId: { type: string, format: uuid }
+          comando:
+            type: string
+            enum: [encender, apagar, disparar-alarma, iniciar-grabacion]
+          ejecutadoPor:
+            type: string
+            format: uuid
+            description: Usuario que originó el comando
+          ocurridoEn:    { type: string, format: date-time }
+
+    EstadoCambiado:
+      name: EstadoCambiado
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventoId, dispositivoId, desde, hacia, ocurridoEn]
+        properties:
+          eventoId:      { type: string, format: uuid }
+          dispositivoId: { type: string, format: uuid }
+          desde:         { type: string, enum: [en-linea, fuera-de-linea, error] }
+          hacia:         { type: string, enum: [en-linea, fuera-de-linea, error] }
+          razon:         { type: string }
+          ocurridoEn:    { type: string, format: date-time }

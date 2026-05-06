@@ -1,0 +1,192 @@
+openapi: 3.0.3
+
+info:
+  title: IoT.Notificaciones - Servicio de Notificaciones y Auditoría
+  version: 1.0.0
+  description: |
+    Servicio (S5) que enruta eventos del bus a canales (móvil, seguridad)
+    y mantiene un log de auditoría consultable.
+
+    Reemplaza los observadores in-process `MobileNotifier`,
+    `SecuritySystem` y `EventLogger` del monolito.
+
+    Tipo SOA (Erl): Utility Service.
+    Suscrito a:
+      - dispositivo.ciclo-vida.* (S2)
+      - dispositivo.control.*    (S3)
+      - dispositivo.estado.cambiado (S4)
+  contact:
+    name: Equipo Plataforma
+
+servers:
+  - url: http://localhost:5005
+    description: Desarrollo local
+
+tags:
+  - name: auditoria
+    description: Consulta del log de eventos
+  - name: canales
+    description: Configuración de canales de notificación
+
+paths:
+
+  /auditoria/eventos:
+    get:
+      tags: [auditoria]
+      summary: Listar eventos auditados
+      operationId: listarEventosAuditoria
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - name: tipo
+          in: query
+          required: false
+          schema: { type: string }
+          description: Filtrar por tipo (ej. dispositivo.control.encendido)
+        - name: dispositivoId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: hasta
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: pagina
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: tamano
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: Página de eventos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaEventos' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /auditoria/eventos/{id}:
+    get:
+      tags: [auditoria]
+      summary: Obtener un evento por id
+      operationId: obtenerEvento
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Evento
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventoAuditado' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /canales:
+    get:
+      tags: [canales]
+      summary: Listar canales de notificación disponibles
+      operationId: listarCanales
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: Canales
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Canal' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    NoAutenticado:
+      description: Token ausente o inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    NoEncontrado:
+      description: Recurso no encontrado
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+
+  schemas:
+
+    EventoAuditado:
+      type: object
+      required: [id, tipo, ocurridoEn, datos]
+      properties:
+        id: { type: string, format: uuid }
+        tipo:
+          type: string
+          example: dispositivo.control.encendido
+        dispositivoId:
+          type: string
+          format: uuid
+          nullable: true
+        usuarioId:
+          type: string
+          format: uuid
+          nullable: true
+        ocurridoEn:
+          type: string
+          format: date-time
+        datos:
+          type: object
+          additionalProperties: true
+          description: Payload original del evento (forma libre por tipo)
+
+    PaginaEventos:
+      type: object
+      required: [items, pagina, tamano, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/EventoAuditado' }
+        pagina: { type: integer }
+        tamano: { type: integer }
+        total: { type: integer }
+
+    Canal:
+      type: object
+      required: [nombre, activo]
+      properties:
+        nombre:
+          type: string
+          enum: [movil, seguridad, registro]
+          description: |
+            - `movil`: equivale a MobileNotifier
+            - `seguridad`: equivale a SecuritySystem
+            - `registro`: equivale a EventLogger
+        activo: { type: boolean }
+        descripcion: { type: string }
+
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri }

@@ -1,0 +1,175 @@
+openapi: 3.0.3
+
+info:
+  title: IoT.Control - Servicio de Control de Dispositivos
+  version: 1.0.0
+  description: |
+    Servicio (S3) que ejecuta comandos sobre dispositivos IoT
+    (encender, apagar, disparar alarma, iniciar grabación).
+
+    Reemplaza el patrón Command (`Patterns/Command/*`) y el dispatch
+    de `IoTFacade.turnOn/turnOff/activateAlarm/startRecording` del monolito.
+
+    Tipo SOA (Erl): Task Service.
+    Depende de: IoT.Inventario (lookup de capacidades del dispositivo).
+    Eventos publicados:
+      - dispositivo.control.encendido
+      - dispositivo.control.apagado
+      - dispositivo.control.alarma-disparada
+      - dispositivo.control.grabacion-iniciada
+  contact:
+    name: Equipo IoT
+
+servers:
+  - url: http://localhost:5003
+    description: Desarrollo local
+
+tags:
+  - name: comandos
+    description: Operaciones de actuación sobre dispositivos
+
+paths:
+
+  /dispositivos/{id}/comandos/encender:
+    post:
+      tags: [comandos]
+      summary: Encender un dispositivo conmutable
+      description: Requiere que el dispositivo implemente la capacidad ISwitchable.
+      operationId: encenderDispositivo
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200':
+          description: Comando ejecutado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoComando' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/CapacidadNoSoportada'
+
+  /dispositivos/{id}/comandos/apagar:
+    post:
+      tags: [comandos]
+      summary: Apagar un dispositivo conmutable
+      operationId: apagarDispositivo
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200':
+          description: Comando ejecutado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoComando' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/CapacidadNoSoportada'
+
+  /dispositivos/{id}/comandos/disparar-alarma:
+    post:
+      tags: [comandos]
+      summary: Disparar la alarma
+      description: Requiere que el dispositivo implemente la capacidad IAlarm.
+      operationId: dispararAlarma
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200':
+          description: Comando ejecutado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoComando' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/CapacidadNoSoportada'
+
+  /dispositivos/{id}/comandos/iniciar-grabacion:
+    post:
+      tags: [comandos]
+      summary: Iniciar grabación en un dispositivo monitorable
+      description: Requiere IMonitorable (típicamente cámaras).
+      operationId: iniciarGrabacion
+      security: [ { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/DispositivoId' } ]
+      responses:
+        '200':
+          description: Comando ejecutado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultadoComando' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/CapacidadNoSoportada'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    DispositivoId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    NoAutenticado:
+      description: Token ausente o inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    NoEncontrado:
+      description: Dispositivo no existe
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+    CapacidadNoSoportada:
+      description: |
+        El dispositivo no implementa la capacidad requerida por el comando
+        (p. ej. intentar encender una alarma que no es ISwitchable).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+
+  schemas:
+
+    ResultadoComando:
+      type: object
+      required: [comandoId, dispositivoId, ejecutadoEn]
+      properties:
+        comandoId:
+          type: string
+          format: uuid
+          description: Id de la ejecución (correlación con el evento publicado)
+        dispositivoId:
+          type: string
+          format: uuid
+        ejecutadoEn:
+          type: string
+          format: date-time
+
+    Problema:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string, format: uri }

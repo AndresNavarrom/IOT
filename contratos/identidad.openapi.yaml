@@ -1,0 +1,265 @@
+openapi: 3.0.3
+
+info:
+  title: IoT.Identidad - Servicio de Identidad
+  version: 1.0.0
+  description: |
+    Servicio de identidad y acceso (S1) del sistema UMLIoT.
+
+    Responsable del ciclo de vida de usuarios y la emisión/validación
+    de credenciales JWT. Reemplaza `AuthService`, `UserRepository`
+    y la entidad `User` del monolito original.
+
+    Tipo SOA (Erl): Entity Service.
+  contact:
+    name: Equipo Identidad
+
+servers:
+  - url: http://localhost:5001
+    description: Desarrollo local
+
+tags:
+  - name: usuarios
+    description: Ciclo de vida de usuarios
+  - name: sesiones
+    description: Autenticación y gestión de tokens
+
+paths:
+
+  /usuarios:
+    post:
+      tags: [usuarios]
+      summary: Registrar un nuevo usuario
+      operationId: registrarUsuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistroUsuario' }
+      responses:
+        '201':
+          description: Usuario registrado
+          headers:
+            Location:
+              description: URI del usuario creado
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+        '400':
+          $ref: '#/components/responses/ErrorValidacion'
+        '409':
+          description: El correo ya está registrado
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+
+  /usuarios/{id}:
+    get:
+      tags: [usuarios]
+      summary: Obtener un usuario por id
+      operationId: obtenerUsuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UsuarioId'
+      responses:
+        '200':
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /sesiones:
+    post:
+      tags: [sesiones]
+      summary: Iniciar sesión (login)
+      operationId: iniciarSesion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Credenciales' }
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Token' }
+        '400':
+          $ref: '#/components/responses/ErrorValidacion'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problema' }
+
+  /sesiones/actual:
+    get:
+      tags: [sesiones]
+      summary: Validar el token y obtener el usuario de la sesión activa
+      operationId: obtenerSesionActual
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sesión activa
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Usuario' }
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+    delete:
+      tags: [sesiones]
+      summary: Cerrar sesión (logout)
+      operationId: cerrarSesion
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Sesión cerrada
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UsuarioId:
+      name: id
+      in: path
+      required: true
+      description: Identificador único del usuario (UUID v4)
+      schema: { type: string, format: uuid }
+
+  responses:
+    NoAutenticado:
+      description: Token ausente, expirado o inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+
+    NoEncontrado:
+      description: Recurso no encontrado
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problema' }
+
+    ErrorValidacion:
+      description: Datos de entrada inválidos
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemaValidacion' }
+
+  schemas:
+
+    Usuario:
+      type: object
+      required: [id, nombre, correo]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 7c1a5e3b-1c41-4f10-b6f3-9b1c7c3d7a4e
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Jose Velez
+        correo:
+          type: string
+          format: email
+          example: jose.velez@example.com
+
+    RegistroUsuario:
+      type: object
+      required: [nombre, correo, password]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 120
+        correo:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 128
+
+    Credenciales:
+      type: object
+      required: [correo, password]
+      properties:
+        correo:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    Token:
+      type: object
+      required: [accessToken, tokenType, expiresIn, usuarioId]
+      properties:
+        accessToken:
+          type: string
+          description: JWT firmado por el servicio
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          format: int32
+          description: Vigencia en segundos
+          example: 3600
+        usuarioId:
+          type: string
+          format: uuid
+
+    Problema:
+      type: object
+      description: Error en formato RFC 7807 (Problem Details)
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://errors.umliot/identidad/credenciales-invalidas
+        title:
+          type: string
+          example: Credenciales inválidas
+        status:
+          type: integer
+          example: 401
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+
+    ProblemaValidacion:
+      allOf:
+        - $ref: '#/components/schemas/Problema'
+        - type: object
+          properties:
+            errores:
+              type: object
+              additionalProperties:
+                type: array
+                items: { type: string }
+              example:
+                correo: ["debe ser un correo válido"]
+                password: ["debe tener mínimo 8 caracteres"]
