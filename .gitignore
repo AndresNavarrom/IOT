@@ -12,6 +12,7 @@ bin/
 *.lib
 *.so
 *.dylib
+.vs
 
 # Si quieres compartir configuración, usa esto en vez de ignorar todo:
 # .vscode/*
